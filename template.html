@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly QIS Papers | {{ week_label }} Issue #{{ issue_number }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a2e;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:24px 0;">
+<tr><td align="center">
+<table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;">
+
+  <!-- Header -->
+  <tr>
+    <td bgcolor="#1a1a2e" style="background:#1a1a2e;border-radius:12px 12px 0 0;padding:32px 40px 24px;">
+      <p style="margin:0 0 4px;font-size:11px;letter-spacing:3px;color:#e94560;text-transform:uppercase;font-weight:600;">Quantitative Investment Strategies</p>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;line-height:1.2;">Weekly QIS Papers</h1>
+      <p style="margin:0;font-size:13px;color:#a8b2d8;">
+        {{ week_label }} &nbsp;&bull;&nbsp; Issue #{{ issue_number }} &nbsp;&bull;&nbsp; {{ items|length }} Papers Selected
+      </p>
+    </td>
+  </tr>
+
+  <!-- Table of Contents -->
+  <tr>
+    <td bgcolor="#ffffff" style="background:#ffffff;padding:28px 40px 20px;">
+      <p style="margin:0 0 14px;font-size:11px;letter-spacing:2px;color:#e94560;text-transform:uppercase;font-weight:700;">This Week</p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        {% for item in items %}
+        <tr>
+          <td width="24" valign="top" style="padding:0 10px 10px 0;">
+            <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:#e94560;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:20px;">{{ loop.index }}</span>
+          </td>
+          <td valign="top" style="padding-bottom:10px;">
+            <a href="{{ item.paper.url }}" style="font-size:13px;font-weight:600;color:#1a1a2e;text-decoration:none;line-height:1.4;">{{ item.paper.title }}</a>
+            <br>
+            <span style="font-size:11px;color:#718096;">
+              {% if item.paper.authors %}{{ item.paper.authors[0] }}{% if item.paper.authors|length > 1 %} et al.{% endif %} &nbsp;&bull;&nbsp; {% endif %}
+              <span style="color:#e94560;font-weight:600;">{{ item.paper.source }}</span>
+              &nbsp;&bull;&nbsp; Score: <strong style="color:#1a1a2e;">{{ "%.1f"|format(item.final_score) }}/5</strong>
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </td>
+  </tr>
+
+  <!-- Divider -->
+  <tr>
+    <td bgcolor="#ffffff" style="background:#ffffff;padding:0 40px;">
+      <hr style="border:none;border-top:2px solid #f4f6f9;margin:0;">
+    </td>
+  </tr>
+
+  <!-- Papers -->
+  {% for item in items %}
+  <tr>
+    <td bgcolor="#ffffff" style="background:#ffffff;padding:28px 40px {% if loop.last %}32px{% else %}0{% endif %};">
+
+      <!-- Number + title -->
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td width="36" valign="top">
+            <div style="width:28px;height:28px;border-radius:50%;background:#e94560;color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px;">{{ loop.index }}</div>
+          </td>
+          <td valign="top" style="padding-left:10px;">
+            <a href="{{ item.paper.url }}" style="font-size:15px;font-weight:700;color:#1a1a2e;text-decoration:none;line-height:1.4;">{{ item.paper.title }}</a>
+            <p style="margin:5px 0 0;font-size:12px;color:#718096;">
+              {% if item.paper.authors %}{{ item.paper.authors[:3]|join(', ') }}{% if item.paper.authors|length > 3 %} et al.{% endif %} &nbsp;&bull;&nbsp; {% endif %}
+              <span style="color:#e94560;font-weight:600;">{{ item.paper.source }}</span>
+              &nbsp;&bull;&nbsp; {{ item.paper.published.strftime('%b %d, %Y') }}
+              {% if item.paper.categories %}&nbsp;&bull;&nbsp; {{ item.paper.categories[0] }}{% endif %}
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Score bar -->
+      <div style="margin:14px 0 0 38px;">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding-right:20px;text-align:center;">
+              <div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Relevance</div>
+              <div style="font-size:20px;font-weight:700;color:{% if item.relevance >= 4 %}#16a34a{% elif item.relevance >= 3 %}#d97706{% else %}#dc2626{% endif %};">{{ "%.1f"|format(item.relevance) }}<span style="font-size:11px;color:#a0aec0;font-weight:400;">/5</span></div>
+            </td>
+            <td style="padding-right:20px;text-align:center;">
+              <div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Source Quality</div>
+              <div style="font-size:20px;font-weight:700;color:{% if item.source_quality >= 4 %}#16a34a{% elif item.source_quality >= 3 %}#d97706{% else %}#dc2626{% endif %};">{{ "%.1f"|format(item.source_quality) }}<span style="font-size:11px;color:#a0aec0;font-weight:400;">/5</span></div>
+            </td>
+            <td style="padding-right:0;text-align:center;border-left:2px solid #e2e8f0;padding-left:20px;">
+              <div style="font-size:10px;color:#718096;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Final Score</div>
+              <div style="font-size:20px;font-weight:700;color:#1a1a2e;">{{ "%.1f"|format(item.final_score) }}<span style="font-size:11px;color:#a0aec0;font-weight:400;">/5</span></div>
+            </td>
+          </tr>
+        </table>
+        {% if item.relevance_reason %}
+        <p style="margin:6px 0 0;font-size:11px;color:#718096;font-style:italic;">{{ item.relevance_reason }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Summary -->
+      <div style="margin:14px 0 0 38px;">
+        <p style="margin:0 0 4px;font-size:10px;letter-spacing:1.5px;color:#4a5568;text-transform:uppercase;font-weight:700;">Summary</p>
+        <div style="font-size:14px;line-height:1.7;color:#2d3748;">{{ item.summary | nl2br }}</div>
+      </div>
+
+      <!-- Key Idea -->
+      <div style="margin:10px 0 0 38px;">
+        <p style="margin:0 0 4px;font-size:10px;letter-spacing:1.5px;color:#4a5568;text-transform:uppercase;font-weight:700;">Key Idea</p>
+        <div style="font-size:14px;line-height:1.7;color:#2d3748;">{{ item.key_idea | nl2br }}</div>
+      </div>
+
+      <!-- Potential Application -->
+      <div style="margin:10px 0 0 38px;background:#f0f7ff;border-left:3px solid #3b82f6;border-radius:0 4px 4px 0;padding:10px 14px;">
+        <p style="margin:0 0 4px;font-size:10px;letter-spacing:1.5px;color:#3b82f6;text-transform:uppercase;font-weight:700;">Potential Application</p>
+        <div style="font-size:13px;line-height:1.7;color:#1e40af;">{{ item.application | nl2br }}</div>
+      </div>
+
+      <!-- Keywords -->
+      {% if item.keywords %}
+      <div style="margin:10px 0 0 38px;">
+        {% for kw in item.keywords %}
+        <span style="display:inline-block;margin:2px 3px 2px 0;padding:2px 8px;background:#f0f4f8;border-radius:3px;font-size:11px;color:#4a5568;">{{ kw }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Links -->
+      <div style="margin:12px 0 0 38px;">
+        <a href="{{ item.paper.url }}" style="display:inline-block;margin-right:8px;padding:6px 14px;background:#1a1a2e;color:#fff;font-size:11px;font-weight:600;border-radius:4px;text-decoration:none;">Abstract</a>
+        {% if item.paper.pdf_url %}
+        <a href="{{ item.paper.pdf_url }}" style="display:inline-block;padding:6px 14px;background:#e94560;color:#fff;font-size:11px;font-weight:600;border-radius:4px;text-decoration:none;">PDF</a>
+        {% endif %}
+      </div>
+
+      {% if not loop.last %}
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0 0;">
+      {% endif %}
+
+    </td>
+  </tr>
+  {% endfor %}
+
+  <!-- Universe Stats -->
+  <tr>
+    <td style="background:#f7fafc;border-top:2px solid #e2e8f0;padding:20px 40px;">
+      <p style="margin:0 0 10px;font-size:11px;letter-spacing:2px;color:#718096;text-transform:uppercase;font-weight:700;">Paper Universe — This Run</p>
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:24px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#1a1a2e;">{{ run_stats.total }}</div>
+            <div style="font-size:11px;color:#718096;margin-top:2px;">Fetched</div>
+          </td>
+          <td style="padding-right:24px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#e94560;">{{ run_stats.selected }}</div>
+            <div style="font-size:11px;color:#718096;margin-top:2px;">Selected</div>
+          </td>
+          {% for src in run_stats.by_source %}
+          <td style="padding-right:24px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#4a5568;">{{ src.count }}</div>
+            <div style="font-size:11px;color:#718096;margin-top:2px;">{{ src.source }}</div>
+          </td>
+          {% endfor %}
+        </tr>
+      </table>
+      {% if db_stats %}
+      <p style="margin:10px 0 0;font-size:11px;color:#a0aec0;">
+        Database total: {{ db_stats.total }} papers
+        {% for src in db_stats.by_source %} &nbsp;&bull;&nbsp; {{ src.source }}: {{ src.count }}{% endfor %}
+      </p>
+      {% endif %}
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td bgcolor="#1a1a2e" style="background:#1a1a2e;border-radius:0 0 12px 12px;padding:20px 40px;text-align:center;">
+      <p style="margin:0 0 4px;font-size:11px;color:#a8b2d8;">Sources: arXiv q-fin/econ &nbsp;&bull;&nbsp; NBER Working Papers &nbsp;&bull;&nbsp; Semantic Scholar</p>
+      <p style="margin:0;font-size:10px;color:#4a5568;">Generated by Finance Paper Agent &nbsp;&bull;&nbsp; {{ week_label }} Issue #{{ issue_number }}</p>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+
+</body>
+</html>
