@@ -68,6 +68,8 @@ _SOURCE_QUALITY: dict[str, float] = {
     "arxiv": 3.0,
     # Tier 2 — Semantic Scholar / other
     "semantic scholar": 2.0,
+    # Practitioner journals
+    "risk": 4.0,
 }
 
 _QFIN_CATEGORIES = {
@@ -285,6 +287,32 @@ def analyze_paper(score: PaperScore, client: anthropic.Anthropic, config: Config
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
+
+def analyze_papers_directly(papers: list[Paper], config: Config) -> list[PaperSummary]:
+    """Analyze all papers directly without a relevance screening pass.
+
+    Used for pre-curated lists (e.g. classics special issue) where every paper
+    should be included regardless of automated relevance score.
+    Relevance is set to 5.0 for all papers; source quality is computed normally.
+    """
+    client = anthropic.Anthropic(api_key=config.anthropic_api_key)
+    summaries: list[PaperSummary] = []
+    for paper in papers:
+        sq = source_quality_score(paper)
+        score = PaperScore(
+            paper=paper,
+            relevance=5.0,
+            source_quality=sq,
+            final_score=0.5 * 5.0 + 0.5 * sq,
+            relevance_reason="curated classic",
+        )
+        try:
+            summary = analyze_paper(score, client, config)
+            summaries.append(summary)
+        except Exception as exc:
+            logger.warning("Analysis failed for '%s': %s", paper.title[:50], exc)
+    return summaries
+
 
 def build_summaries(papers: list[Paper], config: Config) -> list[PaperSummary]:
     """

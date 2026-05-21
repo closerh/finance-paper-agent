@@ -1,0 +1,182 @@
+[
+  {
+    "title": "Expected Option Returns",
+    "authors": ["Joshua D. Coval", "Tyler Shumway"],
+    "abstract": "This paper examines expected option returns theoretically and empirically. In a single-factor CAPM world, expected put and call returns are fully determined by their market beta. Empirically, however, delta-neutral S&P 500 straddles earn average returns of approximately minus 3 percent per week, and individual equity straddles show similar patterns. This strongly negative average return is inconsistent with standard asset pricing models and implies that volatility risk carries a significant negative price of risk—investors pay a premium to offload volatility exposure.",
+    "url": "https://doi.org/10.1111/0022-1082.00352",
+    "pdf_url": null,
+    "published": "2001-06-01",
+    "source": "Journal of Finance",
+    "categories": ["equity options", "volatility risk premium", "options returns"]
+  },
+  {
+    "title": "Delta-Hedged Gains and the Negative Market Volatility Risk Premium",
+    "authors": ["Gurdip Bakshi", "Nikunj Kapadia"],
+    "abstract": "This paper examines the profitability of delta-hedged call option portfolios. Delta-hedged gains depend on the difference between realized and implied volatility weighted by gamma. Empirical analysis of S&P 500 index options shows that delta-hedged gains are systematically negative (averaging roughly minus 10 percent of option premium per month), providing direct evidence of a negative market volatility risk premium. Cross-sectional analysis across individual stocks shows that delta-hedged gains become less negative as idiosyncratic volatility increases, consistent with a priced systematic volatility factor.",
+    "url": "https://doi.org/10.1093/rfs/hhg002",
+    "pdf_url": null,
+    "published": "2003-04-01",
+    "source": "Review of Financial Studies",
+    "categories": ["equity options", "delta hedging", "volatility risk premium"]
+  },
+  {
+    "title": "Cross-Section of Option Returns and Volatility",
+    "authors": ["Amit Goyal", "Alessio Saretto"],
+    "abstract": "This paper studies the cross-section of equity option returns. The spread between historical (realized) volatility and implied volatility is a strong predictor of future option returns. Stocks with high implied-to-historical volatility spreads have significantly lower subsequent option returns than stocks with low spreads. A long-short strategy based on this signal earns average annual returns of up to 100 percent with high Sharpe ratios. The results suggest systematic mispricings in implied volatility, sustained by limits to arbitrage that prevent convergence.",
+    "url": "https://doi.org/10.1016/j.jfineco.2009.05.003",
+    "pdf_url": null,
+    "published": "2009-11-01",
+    "source": "Journal of Financial Economics",
+    "categories": ["equity options", "implied volatility", "options returns", "cross-section"]
+  },
+  {
+    "title": "Cross-Section of Option Returns and Idiosyncratic Stock Volatility",
+    "authors": ["Jie Cao", "Bing Han"],
+    "abstract": "This paper documents a robust negative cross-sectional relation between delta-hedged equity option returns and idiosyncratic stock volatility. Stocks with high idiosyncratic volatility have significantly more negative delta-hedged option returns, even after controlling for market volatility, option characteristics, and other known predictors. The effect is economically large. The findings indicate that arbitrage is costlier for high-idiosyncratic-volatility stocks, leading to larger and more persistent volatility risk premia embedded in their options.",
+    "url": "https://doi.org/10.1016/j.jfineco.2013.04.002",
+    "pdf_url": null,
+    "published": "2013-08-01",
+    "source": "Journal of Financial Economics",
+    "categories": ["equity options", "idiosyncratic volatility", "options returns", "limits to arbitrage"]
+  },
+  {
+    "title": "What Does the Individual Option Volatility Smirk Tell Us About Future Equity Returns?",
+    "authors": ["Yuhang Xing", "Xiaoyan Zhang", "Rui Zhao"],
+    "abstract": "This paper investigates whether the implied volatility smirk—the slope of implied volatility across strike prices—predicts future equity returns. Stocks with steeper smirks (higher OTM put IV minus ATM call IV) have significantly lower future stock returns. The underperformance of steep-smirk stocks relative to flat-smirk stocks is approximately 10 to 13 percent per year after controlling for standard return predictors. Results are consistent with the smirk reflecting informed trading about future negative events or crash risk priced by the options market.",
+    "url": "https://doi.org/10.1017/S0022109010000233",
+    "pdf_url": null,
+    "published": "2010-06-01",
+    "source": "Journal of Financial and Quantitative Analysis",
+    "categories": ["equity options", "implied volatility smirk", "skew", "return predictability"]
+  },
+  {
+    "title": "The Price of Correlation Risk: Evidence from Equity Options",
+    "authors": ["Joost Driessen", "Pascal J. Maenhout", "Grigory Vilkov"],
+    "abstract": "This paper decomposes the equity index variance risk premium into individual stock variance premia and a distinct correlation risk premium. Using S&P 100 index options and individual constituent options, the authors show correlation risk is separately priced. Dispersion trading strategies—long individual variance, short index variance—earn large average returns (Sharpe ratios around 1.5) unexplained by standard risk factors. The implied correlation from index options systematically exceeds realized correlation, with the correlation risk premium averaging about 20 percentage points annually.",
+    "url": "https://doi.org/10.1111/j.1540-6261.2009.01474.x",
+    "pdf_url": null,
+    "published": "2009-06-01",
+    "source": "Journal of Finance",
+    "categories": ["equity options", "correlation risk", "dispersion trading", "variance swap"]
+  },
+  {
+    "title": "Variance Risk Premiums",
+    "authors": ["Peter Carr", "Liuren Wu"],
+    "abstract": "This paper proposes a model-free method to quantify the variance risk premium on financial assets. The risk-neutral expected variance—the variance swap rate—is approximated by a specific portfolio of option prices. The variance risk premium is measured as realized variance minus this synthetic swap rate. Using a large dataset on five stock indexes and 35 individual stocks, the authors find that indexes have large and significantly negative variance risk premia, while individual stocks have smaller and often insignificant premia. Index VRP exhibits strong predictive power for future index returns.",
+    "url": "https://doi.org/10.1093/rfs/hhn038",
+    "pdf_url": null,
+    "published": "2009-03-01",
+    "source": "Review of Financial Studies",
+    "categories": ["variance swap", "volatility risk premium", "options pricing", "return predictability"]
+  },
+  {
+    "title": "The Log Contract",
+    "authors": ["Anthony Neuberger"],
+    "abstract": "This paper introduces the log contract—a derivative paying the log of the ratio of the terminal asset price to its initial price. The key insight is that the log contract can be replicated by a static portfolio of European options of all strikes, plus a dynamic position in the underlying. This provides the theoretical foundation for model-free variance estimation: twice the negative expected log return under the risk-neutral measure equals the expected realized variance. The log contract is the direct intellectual basis for the CBOE VIX methodology and the replication of variance swaps.",
+    "url": "https://doi.org/10.3905/jpm.1994.409478",
+    "pdf_url": null,
+    "published": "1994-01-01",
+    "source": "Journal of Portfolio Management",
+    "categories": ["variance swap", "options replication", "volatility derivatives", "VIX"]
+  },
+  {
+    "title": "More Than You Ever Wanted to Know About Volatility Swaps",
+    "authors": ["Kresimir Demeterfi", "Emanuel Derman", "Michael Kamal", "Joseph Zou"],
+    "abstract": "This paper provides the definitive practical guide to pricing and hedging volatility and variance swaps. It derives the theoretical fair value of a variance swap as a function of a log-strike-weighted portfolio of European options—replicable with a static options position plus dynamic delta hedging in the underlying. The convexity correction between vol swaps and var swaps is carefully derived. The paper covers exotic variants including gamma swaps, corridor variance swaps, and conditional variance swaps. Published as a Goldman Sachs research note and in the Journal of Derivatives; it remains the standard industry reference for variance swap mechanics.",
+    "url": "https://doi.org/10.3905/jod.1999.319129",
+    "pdf_url": "https://emanuelderman.com/wp-content/uploads/1999/02/gs-volatility_swaps.pdf",
+    "published": "1999-01-01",
+    "source": "Journal of Derivatives",
+    "categories": ["variance swap", "volatility swap", "options replication", "volatility derivatives"]
+  },
+  {
+    "title": "Does Net Buying Pressure Affect the Shape of Implied Volatility Functions?",
+    "authors": ["Nicolas P. B. Bollen", "Robert E. Whaley"],
+    "abstract": "This paper tests whether demand imbalances among option market participants affect option prices beyond what standard frictionless models imply. Strong evidence shows that net buying pressure from end-users distorts the implied volatility surface: index options display steep put skew because portfolio managers systematically buy puts for downside protection, while individual equity options have flatter skews because speculative demand for calls and puts is more balanced. These persistent deviations from model prices are consistent with limits to arbitrage that prevent market makers from fully correcting demand-driven mispricings.",
+    "url": "https://doi.org/10.1111/j.1540-6261.2004.00645.x",
+    "pdf_url": null,
+    "published": "2004-04-01",
+    "source": "Journal of Finance",
+    "categories": ["equity options", "implied volatility", "demand pressure", "vol surface"]
+  },
+  {
+    "title": "A Closed-Form Solution for Options with Stochastic Volatility with Applications to Bond and Currency Options",
+    "authors": ["Steven L. Heston"],
+    "abstract": "This paper presents a closed-form solution for European option prices when the underlying asset's variance follows a mean-reverting square-root process (CIR process) correlated with asset returns. Unlike Black-Scholes, the model allows arbitrary correlation between returns and volatility, capturing the leverage effect and implied volatility skew. The solution is expressed via characteristic functions and Fourier inversion. The model's five parameters—long-run variance, mean reversion speed, volatility of volatility, initial variance, and return-vol correlation—each have economically interpretable effects on the implied volatility surface. The Heston model has become the industry-standard stochastic volatility framework.",
+    "url": "https://doi.org/10.1093/rfs/6.2.327",
+    "pdf_url": null,
+    "published": "1993-04-01",
+    "source": "Review of Financial Studies",
+    "categories": ["stochastic volatility", "options pricing", "Heston model", "vol surface"]
+  },
+  {
+    "title": "Pricing with a Smile",
+    "authors": ["Bruno Dupire"],
+    "abstract": "This paper introduces the local volatility model, in which the instantaneous volatility is a deterministic function of the current asset price and time: σ(S, t). The key result, derived via the Dupire forward equation (forward Fokker-Planck), is that given any arbitrage-free set of European option prices, there exists a unique diffusion consistent with those prices, and the local volatility surface can be extracted directly from market option prices. The local vol model allows exact calibration to the complete observed implied volatility surface across all strikes and maturities and became the backbone of derivatives desk pricing engines throughout the 1990s and 2000s.",
+    "url": "https://ssrn.com/abstract=1340635",
+    "pdf_url": null,
+    "published": "1994-01-01",
+    "source": "Risk",
+    "categories": ["local volatility", "options pricing", "vol surface", "calibration"]
+  },
+  {
+    "title": "Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency",
+    "authors": ["Narasimhan Jegadeesh", "Sheridan Titman"],
+    "abstract": "This paper provides the first rigorous evidence of intermediate-horizon momentum in individual U.S. stock returns. Strategies that buy stocks with high prior 3-to-12-month returns and short stocks with low prior returns earn approximately 1 percent per month in abnormal returns. The profitability of momentum strategies cannot be explained by systematic risk or market microstructure effects. These strategies continue to earn positive returns for up to 12 months after portfolio formation, though they reverse over longer horizons. Momentum is now one of the most replicated and robust findings in empirical asset pricing.",
+    "url": "https://doi.org/10.1111/j.1540-6261.1993.tb04702.x",
+    "pdf_url": null,
+    "published": "1993-02-01",
+    "source": "Journal of Finance",
+    "categories": ["momentum", "systematic strategy", "factor investing", "equity returns"]
+  },
+  {
+    "title": "Value and Momentum Everywhere",
+    "authors": ["Clifford S. Asness", "Tobias J. Moskowitz", "Lasse Heje Pedersen"],
+    "abstract": "This paper studies value and momentum strategies simultaneously across eight diverse financial markets (four equity markets, government bonds, currencies, and commodity futures). Both value and momentum earn significant positive returns in every market and asset class examined. Returns to value and momentum are negatively correlated with each other, offering substantial diversification. The authors propose that common global value and momentum factors explain a large portion of the cross-asset variation in returns. Liquidity risk partially explains these premia, but a large component remains as compensation for fundamental risk.",
+    "url": "https://doi.org/10.1111/jofi.12021",
+    "pdf_url": null,
+    "published": "2013-06-01",
+    "source": "Journal of Finance",
+    "categories": ["value", "momentum", "multi-asset", "systematic strategy", "factor investing"]
+  },
+  {
+    "title": "Betting Against Beta",
+    "authors": ["Andrea Frazzini", "Lasse Heje Pedersen"],
+    "abstract": "This paper documents that securities with high market beta earn lower risk-adjusted returns than low-beta securities—a finding that holds across equities, bonds, credit, futures, and options globally. The mechanism is leverage constraints: investors who cannot or will not use leverage tilt toward high-beta assets, bidding up their prices and reducing expected returns. The Betting Against Beta (BAB) factor—long levered low-beta assets, short de-levered high-beta assets—earns Sharpe ratios of 0.7 to 1.0 across asset classes. BAB is orthogonal to standard risk factors and represents systematic compensation for providing leverage to constrained investors.",
+    "url": "https://doi.org/10.1016/j.jfineco.2013.10.005",
+    "pdf_url": null,
+    "published": "2014-01-01",
+    "source": "Journal of Financial Economics",
+    "categories": ["beta", "low volatility", "factor investing", "systematic strategy", "leverage"]
+  },
+  {
+    "title": "Expected Stock Returns and Variance Risk Premia",
+    "authors": ["Tim Bollerslev", "George Tauchen", "Hao Zhou"],
+    "abstract": "This paper shows that the variance risk premium—the difference between risk-neutral expected variance (implied from options) and the expectation of realized variance under the physical measure—is a powerful predictor of aggregate stock market returns. A high variance risk premium forecasts high future equity returns at quarterly to annual horizons, with R-squared up to 4 percent monthly and 13 percent quarterly. The VRP subsumes the predictive power of standard valuation ratios over certain horizons. Theoretically, the VRP captures uncertainty about economic uncertainty (the variance of variance), linking option markets to macroeconomic risk.",
+    "url": "https://doi.org/10.1093/rfs/hhp008",
+    "pdf_url": null,
+    "published": "2009-11-01",
+    "source": "Review of Financial Studies",
+    "categories": ["variance risk premium", "return predictability", "VIX", "equity risk premium"]
+  },
+  {
+    "title": "The Distribution of Realized Stock Return Volatility",
+    "authors": ["Torben G. Andersen", "Tim Bollerslev", "Francis X. Diebold", "Heiko Ebens"],
+    "abstract": "This paper provides the first comprehensive analysis of realized return volatilities and correlations for individual Dow Jones 30 stocks, constructed from five-minute high-frequency intraday data. Realized volatility, computed as the sum of squared intraday returns, is approximately lognormally distributed and displays strong persistence (long memory). Realized correlations rise significantly during periods of market stress. The paper establishes realized volatility as an accurate, model-free measure of true underlying volatility, and lays the empirical foundation for HAR-type volatility forecasting models and the broader realized volatility literature.",
+    "url": "https://doi.org/10.1016/S0304-405X(01)00055-1",
+    "pdf_url": null,
+    "published": "2001-07-01",
+    "source": "Journal of Financial Economics",
+    "categories": ["realized volatility", "high-frequency data", "volatility forecasting", "microstructure"]
+  },
+  {
+    "title": "Do ETFs Increase Volatility?",
+    "authors": ["Itzhak Ben-David", "Francesco Franzoni", "Rabih Moussawi"],
+    "abstract": "This paper provides causal evidence that ETF ownership increases the return volatility of underlying stocks. The mechanism runs through the arbitrage channel: when ETF prices deviate from NAV, arbitrageurs simultaneously buy or sell the ETF and its underlying basket, transmitting non-fundamental price pressure across all constituents. Using quasi-experimental variation in ETF ownership, the study finds that a one-standard-deviation increase in ETF ownership raises daily return volatility by about 16 percent. ETF arbitrage also increases trading volume, return comovement, and the frequency of extreme price moves, with implications for market stability and portfolio construction in ETF-dominated markets.",
+    "url": "https://doi.org/10.1111/jofi.12595",
+    "pdf_url": null,
+    "published": "2018-12-01",
+    "source": "Journal of Finance",
+    "categories": ["ETF", "volatility", "market microstructure", "arbitrage", "comovement"]
+  }
+]

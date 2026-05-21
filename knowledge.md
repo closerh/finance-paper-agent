@@ -1,7 +1,7 @@
 # QIS Paper Selection — Knowledge Base
 
 > This file drives paper filtering and scoring. Edit it to refine what gets selected each week.
-> Last updated: 2026-05-19
+> Last updated: 2026-05-21
 
 ---
 
@@ -144,15 +144,28 @@ Each selected paper should include:
 
 ---
 
-## 7. Feedback Log
+## 7. Reference Papers (Boss-Approved Exemplars)
 
-> Add feedback after each issue to improve future selection.
+These are confirmed high-quality papers that represent exactly the kind of work the team values.
+Use them as calibration anchors when scoring relevance.
 
-*(No feedback yet — add entries after reviewing Issue #1)*
+| Paper | Why it matters |
+|-------|----------------|
+| Goyal & Saretto (2009) — *Cross-Section of Option Returns and Volatility* (JFE) | IV–HV spread as predictor of option returns; direct signal construction |
+| Cao & Han (2013) — *Cross-Section of Option Returns and Idiosyncratic Stock Volatility* (JFE) | Idiosyncratic vol × delta-hedged gains; limits-to-arbitrage angle |
+| Xing, Zhang & Zhao (2010) — *What Does the Individual Option Volatility Smirk Tell Us About Future Equity Returns?* (JFQA) | Smirk slope as return predictor; informed-trading vs demand-pressure debate |
+| Driessen, Maenhout & Vilkov (2009) — *The Price of Correlation Risk* (JF) | Correlation risk premium; dispersion trading decomposition |
 
-<!-- FEEDBACK TEMPLATE:
-Issue #N (YYYY-MM-DD):
-- Paper "X" was [too basic / not relevant / excellent] because ...
-- Should have included more papers on [topic]
-- Exclude [topic] going forward
--->
+**What these papers share:** They treat options as an asset class with its own cross-sectional return structure, not just as hedging instruments. Papers with this angle should be scored **4–5** even if they are primarily empirical with limited new theory.
+
+---
+
+## 8. Feedback Log
+
+> Updated: 2026-05-21
+
+**Boss feedback (2026-05-21):**
+- Papers about **options cross-section**, **vol smirk/skew as return predictor**, and **correlation risk premium** are directly relevant and should score 4–5.
+- Papers about **variance swaps**, **dispersion trading**, and **volatility risk premium decomposition** are core Tier A topics.
+- The team is also interested in catching up on classic literature: equity vol, var swaps, equity futures, systematic trading strategies, ETFs.
+- A one-off **Special Issue** of 10–20 well-cited classics (1990–present) has been requested in addition to the normal weekly digest.
