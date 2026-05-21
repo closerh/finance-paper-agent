@@ -106,63 +106,85 @@ def source_quality_score(paper: Paper) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Stage 1: relevance screening (fast, Haiku)
+# Stage 1: relevance screening (fast, Haiku, batched)
 # ---------------------------------------------------------------------------
 
 _SCREEN_SYSTEM = """You are a relevance filter for a quantitative investment strategies (QIS) research team.
-Your only job is to score how relevant a paper is to the team's work."""
+Your only job is to score how relevant each paper is to the team's work."""
+
+_BATCH_SIZE = 10
 
 
-def _screen_prompt(paper: Paper, knowledge: str) -> str:
-    return f"""Score the relevance of this paper to the QIS team described in the knowledge base below.
+def _batch_screen_prompt(batch: list[Paper], knowledge: str) -> str:
+    papers_text = ""
+    for i, paper in enumerate(batch, 1):
+        papers_text += (
+            f"\n[{i}] Title: {paper.title}\n"
+            f"    Source: {paper.source}\n"
+            f"    Categories: {', '.join(paper.categories)}\n"
+            f"    Abstract: {paper.abstract[:600]}\n"
+        )
+
+    return f"""Score the relevance of each paper below for the QIS team described in the knowledge base.
 
 {knowledge}
 
 ---
-Paper to score:
-Title: {paper.title}
-Source: {paper.source}
-Categories: {", ".join(paper.categories)}
-Abstract:
-{paper.abstract[:1000]}
+Papers to score:
+{papers_text}
+Return EXACTLY one line per paper, numbered, in this format:
+N: SCORE | reason (one short phrase)
 
-Return EXACTLY two lines, nothing else:
-RELEVANCE: X
-REASON: one sentence
+N is the paper number, SCORE is 1–5 using the Relevance Scoring Guide above.
+Example:
+1: 4 | directly models implied vol surface dynamics
+2: 1 | cryptocurrency paper, excluded topic"""
 
-X is an integer 1–5 using the Relevance Scoring Guide in the knowledge base."""
+
+def _parse_batch_response(text: str, n: int) -> list[tuple[float, str]]:
+    """Parse batch response into (relevance, reason) pairs. Falls back to (1.0, '') on parse failure."""
+    results: list[tuple[float, str]] = [(1.0, "")] * n
+    for line in text.splitlines():
+        m = re.match(r"(\d+):\s*([\d.]+)\s*\|?\s*(.*)", line.strip())
+        if not m:
+            continue
+        idx = int(m.group(1)) - 1
+        if 0 <= idx < n:
+            try:
+                rel = float(m.group(2))
+                rel = max(1.0, min(5.0, rel))
+                reason = m.group(3).strip()
+                results[idx] = (rel, reason)
+            except Exception:
+                pass
+    return results
 
 
 def screen_papers(papers: list[Paper], client: anthropic.Anthropic, config: Config) -> list[PaperScore]:
-    """Score all candidate papers on relevance using the fast model."""
+    """Score all candidate papers on relevance using batched Haiku calls."""
     knowledge = _load_knowledge()
-    results: list[PaperScore] = []
+    sq_scores = [source_quality_score(p) for p in papers]
+    scored_pairs: list[tuple[float, str]] = []
 
-    for paper in papers:
-        sq = source_quality_score(paper)
+    batches = [papers[i:i + _BATCH_SIZE] for i in range(0, len(papers), _BATCH_SIZE)]
+    logger.info("Screening %d papers in %d batch(es) of up to %d", len(papers), len(batches), _BATCH_SIZE)
+
+    for batch_idx, batch in enumerate(batches):
         try:
             resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=80,
-                system=_SCREEN_SYSTEM,
-                messages=[{"role": "user", "content": _screen_prompt(paper, knowledge)}],
+                max_tokens=_BATCH_SIZE * 30,
+                system=[{"type": "text", "text": _SCREEN_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+                messages=[{"role": "user", "content": _batch_screen_prompt(batch, knowledge)}],
             )
-            text = resp.content[0].text.strip()
-            rel = 1.0
-            reason = ""
-            for line in text.splitlines():
-                if line.startswith("RELEVANCE:"):
-                    try:
-                        rel = float(re.search(r"[\d.]+", line).group())
-                        rel = max(1.0, min(5.0, rel))
-                    except Exception:
-                        pass
-                elif line.startswith("REASON:"):
-                    reason = line[len("REASON:"):].strip()
+            pairs = _parse_batch_response(resp.content[0].text.strip(), len(batch))
         except Exception as exc:
-            logger.warning("Screening failed for '%s': %s", paper.title[:50], exc)
-            rel, reason = 1.0, ""
+            logger.warning("Batch %d screening failed: %s", batch_idx + 1, exc)
+            pairs = [(1.0, "")] * len(batch)
+        scored_pairs.extend(pairs)
 
+    results: list[PaperScore] = []
+    for paper, sq, (rel, reason) in zip(papers, sq_scores, scored_pairs):
         final = 0.5 * rel + 0.5 * sq
         results.append(PaperScore(
             paper=paper,
