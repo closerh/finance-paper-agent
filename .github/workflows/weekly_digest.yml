@@ -1,0 +1,40 @@
+name: Weekly QIS Paper Digest
+
+on:
+  schedule:
+    - cron: "0 1 * * 5"   # 每周五 09:00 北京时间 (UTC+8 = UTC 01:00)
+  workflow_dispatch:        # 允许手动触发（用于测试）
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run paper agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAILS: ${{ secrets.RECIPIENT_EMAILS }}
+        run: python main.py
+
+      - name: Upload HTML preview (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-html
+          path: logs/preview_*.html
+          retention-days: 7
