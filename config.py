@@ -29,11 +29,8 @@ class Config:
         "q-fin.ST",  # Statistical Finance
         "q-fin.TR",  # Trading and Market Microstructure
     ])
-    lookback_days: int = 7
+    lookback_days: int = 10
     top_n: int = 5
-
-    # NBER RSS
-    nber_rss_url: str = "https://www.nber.org/rss/new_working_papers.xml"
 
 
 def load_config() -> Config:

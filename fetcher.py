@@ -12,6 +12,8 @@ import feedparser
 
 from config import Config
 
+ARXIV_API_URL = "https://export.arxiv.org/api/query"
+
 logger = logging.getLogger(__name__)
 
 ARXIV_NS = "http://www.w3.org/2005/Atom"
@@ -60,7 +62,7 @@ def fetch_semantic_scholar(config: Config) -> list[Paper]:
 
     for i, query in enumerate(queries):
         if i > 0:
-            time.sleep(2)
+            time.sleep(5)
         encoded_query = urllib.parse.quote(query)
         url = (
             "https://api.semanticscholar.org/graph/v1/paper/search"
@@ -69,10 +71,20 @@ def fetch_semantic_scholar(config: Config) -> list[Paper]:
             f"&limit=25"
             f"&publicationDateOrYear={from_date}:{to_date}"
         )
-        try:
-            data = json.loads(_get(url, timeout=20))
-        except Exception as e:
-            logger.warning(f"Semantic Scholar query '{query}' failed: {e}")
+        data = None
+        for attempt in range(3):
+            try:
+                data = json.loads(_get(url, timeout=20))
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    wait = 30 * (attempt + 1)
+                    logger.warning(f"Semantic Scholar 429, retrying in {wait}s...")
+                    time.sleep(wait)
+                else:
+                    logger.warning(f"Semantic Scholar query '{query}' failed: {e}")
+                    break
+        if data is None:
             continue
 
         for item in data.get("data", []):
@@ -122,102 +134,174 @@ def fetch_semantic_scholar(config: Config) -> list[Paper]:
 
 
 # ---------------------------------------------------------------------------
-# Source 2: arXiv RSS feeds
+# Source 2: arXiv API (replaces RSS — works on weekends, uses subcategories)
 # ---------------------------------------------------------------------------
 
-ARXIV_RSS_CATEGORIES = ["q-fin", "econ"]
+_ATOM_NS = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+
+# econ subcategories alongside q-fin for breadth
+_ECON_SUBCATS = ["econ.EM", "econ.GN", "econ.TH"]
 
 
-def fetch_arxiv_rss(config: Config) -> list[Paper]:
+def fetch_arxiv_api(config: Config) -> list[Paper]:
     cutoff = _cutoff(config.lookback_days)
-    papers: list[Paper] = []
+    cats = list(config.arxiv_categories) + _ECON_SUBCATS
+    cat_query = " OR ".join(f"cat:{c}" for c in cats)
+    query = urllib.parse.quote(cat_query)
 
-    for cat in ARXIV_RSS_CATEGORIES:
-        url = f"https://rss.arxiv.org/rss/{cat}"
-        try:
-            feed = feedparser.parse(url)
-        except Exception as e:
-            logger.warning(f"arXiv RSS {cat} failed: {e}")
-            continue
-
-        for entry in feed.entries:
-            title = getattr(entry, "title", "").strip()
-            if not title:
-                continue
-
-            published = None
-            for attr in ("published_parsed", "updated_parsed"):
-                parsed = getattr(entry, attr, None)
-                if parsed:
-                    published = datetime(*parsed[:6], tzinfo=timezone.utc)
-                    break
-            if published is None or published < cutoff:
-                continue
-
-            abstract = getattr(entry, "summary", "").strip()
-            link = getattr(entry, "link", "")
-            authors_raw = getattr(entry, "author", "")
-            authors = [a.strip() for a in authors_raw.split(",") if a.strip()]
-            tags = [t.get("term", "") for t in getattr(entry, "tags", [])]
-            pdf_url = link.replace("/abs/", "/pdf/") if "/abs/" in link else None
-
-            papers.append(Paper(
-                title=title,
-                authors=authors,
-                abstract=abstract,
-                url=link,
-                published=published,
-                source="arXiv",
-                categories=tags or [cat],
-                pdf_url=pdf_url,
-                score=len(tags),
-            ))
-
-    logger.info(f"arXiv RSS: found {len(papers)} papers in the last {config.lookback_days} days")
-    return papers
-
-
-# ---------------------------------------------------------------------------
-# Source 3: NBER Working Papers RSS
-# ---------------------------------------------------------------------------
-
-def fetch_nber_papers(config: Config) -> list[Paper]:
-    cutoff = _cutoff(max(config.lookback_days, 14))
+    url = (
+        f"{ARXIV_API_URL}?search_query={query}"
+        "&sortBy=submittedDate&sortOrder=descending&max_results=100"
+    )
     try:
-        feed = feedparser.parse(config.nber_rss_url)
+        req = urllib.request.Request(url, headers={"User-Agent": "FinancePaperAgent/1.0"})
+        raw = urllib.request.urlopen(req, timeout=30).read()
+        root = ET.fromstring(raw)
     except Exception as e:
-        logger.warning(f"NBER fetch failed: {e}")
+        logger.warning("arXiv API fetch failed: %s", e)
         return []
 
     papers: list[Paper] = []
-    for entry in feed.entries:
-        published = None
-        for attr in ("published_parsed", "updated_parsed"):
-            parsed = getattr(entry, attr, None)
-            if parsed:
-                published = datetime(*parsed[:6], tzinfo=timezone.utc)
-                break
-        if published is None or published < cutoff:
+    for entry in root.findall("a:entry", _ATOM_NS):
+        title = (entry.findtext("a:title", "", _ATOM_NS) or "").strip().replace("\n", " ")
+        if not title:
             continue
 
-        title = getattr(entry, "title", "Untitled").strip()
-        url = getattr(entry, "link", "")
-        abstract = getattr(entry, "summary", "").strip()
-        authors_raw = getattr(entry, "author", "")
-        authors = [a.strip() for a in authors_raw.split(",") if a.strip()]
+        pub_str = entry.findtext("a:published", "", _ATOM_NS) or ""
+        try:
+            published = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if published < cutoff:
+            continue
+
+        abstract = (entry.findtext("a:summary", "", _ATOM_NS) or "").strip().replace("\n", " ")
+
+        link = ""
+        pdf_url = None
+        for lnk in entry.findall("a:link", _ATOM_NS):
+            href = lnk.get("href", "")
+            if lnk.get("rel") == "alternate":
+                link = href
+            elif lnk.get("type") == "application/pdf":
+                pdf_url = href
+        if not link:
+            link = entry.findtext("a:id", "", _ATOM_NS) or ""
+        if not pdf_url and "/abs/" in link:
+            pdf_url = link.replace("/abs/", "/pdf/")
+
+        authors = [
+            (a.findtext("a:name", "", _ATOM_NS) or "").strip()
+            for a in entry.findall("a:author", _ATOM_NS)
+        ]
+
+        categories: list[str] = []
+        pc = entry.find("arxiv:primary_category", _ATOM_NS)
+        if pc is not None and pc.get("term"):
+            categories.append(pc.get("term"))
+        for cat_el in entry.findall("a:category", _ATOM_NS):
+            term = cat_el.get("term", "")
+            if term and term not in categories:
+                categories.append(term)
 
         papers.append(Paper(
             title=title,
             authors=authors,
             abstract=abstract,
-            url=url,
+            url=link,
             published=published,
-            source="NBER",
-            categories=["Economics"],
-            score=2,
+            source="arXiv",
+            categories=categories or ["q-fin"],
+            pdf_url=pdf_url,
         ))
 
-    logger.info(f"NBER: found {len(papers)} papers in the last 14 days")
+    logger.info("arXiv API: found %d papers in the last %d days", len(papers), config.lookback_days)
+    return papers
+
+
+# ---------------------------------------------------------------------------
+# Source 3: NBER via Semantic Scholar (NBER RSS is defunct)
+# ---------------------------------------------------------------------------
+
+_NBER_SS_QUERIES = [
+    "NBER working paper macroeconomics finance",
+    "NBER working paper asset pricing monetary policy",
+]
+
+
+def fetch_nber_papers(config: Config) -> list[Paper]:
+    """Fetch NBER working papers via Semantic Scholar (NBER's own RSS is defunct)."""
+    cutoff = _cutoff(max(config.lookback_days, 14))
+    from_date = cutoff.strftime("%Y-%m-%d")
+    to_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    papers: list[Paper] = []
+    seen_titles: set[str] = set()
+
+    for i, query in enumerate(_NBER_SS_QUERIES):
+        if i > 0:
+            time.sleep(5)
+        encoded = urllib.parse.quote(query)
+        url = (
+            "https://api.semanticscholar.org/graph/v1/paper/search"
+            f"?query={encoded}"
+            f"&fields={SS_FIELDS}"
+            "&limit=20"
+            f"&publicationDateOrYear={from_date}:{to_date}"
+        )
+        data = None
+        for attempt in range(3):
+            try:
+                data = json.loads(_get(url, timeout=20))
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    wait = 30 * (attempt + 1)
+                    logger.warning("NBER/SS 429, retrying in %ds...", wait)
+                    time.sleep(wait)
+                else:
+                    logger.warning("NBER/SS query '%s' failed: %s", query[:40], e)
+                    break
+        if not data:
+            continue
+
+        for item in data.get("data", []):
+            title = (item.get("title") or "").strip()
+            if not title or title.lower() in seen_titles:
+                continue
+            # Only keep papers that mention NBER or look like working papers
+            abstract = (item.get("abstract") or "").lower()
+            if "nber" not in abstract and "national bureau" not in abstract:
+                continue
+
+            pub_date_str = item.get("publicationDate") or ""
+            try:
+                published = datetime.fromisoformat(pub_date_str).replace(tzinfo=timezone.utc)
+            except Exception:
+                continue
+            if published < cutoff:
+                continue
+
+            authors = [a.get("name", "") for a in (item.get("authors") or [])]
+            paper_url = item.get("url") or ""
+            pdf_url = None
+            oap = item.get("openAccessPdf")
+            if oap and isinstance(oap, dict):
+                pdf_url = oap.get("url")
+
+            seen_titles.add(title.lower())
+            papers.append(Paper(
+                title=title,
+                authors=authors,
+                abstract=item.get("abstract") or "",
+                url=paper_url,
+                published=published,
+                source="NBER",
+                categories=["Economics"],
+                pdf_url=pdf_url,
+                score=2,
+            ))
+
+    logger.info("NBER (via SS): found %d papers in the last %d days", len(papers), config.lookback_days)
     return papers
 
 
@@ -264,7 +348,7 @@ def select_top_papers(all_papers: list[Paper], n: int) -> list[Paper]:
 def fetch_top_papers(config: Config) -> tuple[list[Paper], list[Paper], dict]:
     """Returns (selected_papers, all_papers, source_counts)."""
     ss_papers = fetch_semantic_scholar(config)
-    arxiv_papers = fetch_arxiv_rss(config)
+    arxiv_papers = fetch_arxiv_api(config)
     nber_papers = fetch_nber_papers(config)
 
     all_papers = ss_papers + arxiv_papers + nber_papers

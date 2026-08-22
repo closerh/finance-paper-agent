@@ -1,7 +1,12 @@
 """
 Finance & Economics Weekly Paper Agent
-Fetches top 5 papers, generates English summaries + scores via Claude,
-and emails an HTML digest with PDF attachments every Monday.
+
+Two-phase operation:
+  --prepare   Fetch, score, render, download PDFs → save to data/queue/{week}/
+  --send      Load the prepared package and email it
+
+Legacy single-shot:
+  (no flag)   Prepare + send in one go (original behaviour)
 """
 
 import json
@@ -11,6 +16,9 @@ import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
@@ -28,6 +36,8 @@ from summarizer import analyze_papers_directly, build_summaries
 
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
+
+QUEUE_DIR = Path(__file__).parent / "data" / "queue"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,8 +89,8 @@ def render_email(
     )
 
 
-MAX_PDF_BYTES = 8 * 1024 * 1024   # 8 MB per PDF
-MAX_TOTAL_ATTACH_BYTES = 15 * 1024 * 1024  # 15 MB total (base64 overhead ~+33% → ~20 MB on wire)
+MAX_PDF_BYTES = 8 * 1024 * 1024
+MAX_TOTAL_ATTACH_BYTES = 15 * 1024 * 1024
 
 
 def download_pdf(url: str, title: str) -> tuple[str, bytes] | None:
@@ -101,7 +111,180 @@ def download_pdf(url: str, title: str) -> tuple[str, bytes] | None:
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Shared helper: download PDFs up to budget, return list of (filename, bytes)
+# ---------------------------------------------------------------------------
+
+def _collect_pdfs(summaries) -> list[tuple[str, bytes]]:
+    attachments: list[tuple[str, bytes]] = []
+    total = 0
+    for s in summaries:
+        if total >= MAX_TOTAL_ATTACH_BYTES:
+            logger.info("Attachment budget reached — skipping remaining PDFs.")
+            break
+        result = download_pdf(s.paper.pdf_url, s.paper.title)
+        if result:
+            filename, data = result
+            if total + len(data) > MAX_TOTAL_ATTACH_BYTES:
+                logger.warning("Skipping PDF (would exceed budget): %s", filename)
+                continue
+            attachments.append(result)
+            total += len(data)
+            logger.info("PDF ready: %s (%.1f MB)", filename, len(data) / 1e6)
+    return attachments
+
+
+# ---------------------------------------------------------------------------
+# Phase 1: prepare — fetch, score, render, save to queue
+# ---------------------------------------------------------------------------
+
+def prepare(dry_run: bool = False) -> None:
+    logger.info("=== Finance Paper Agent — PREPARE starting ===")
+    config = load_config()
+
+    database.init_db()
+    ws = week_start_date().strftime("%Y-%m-%d")
+    package_dir = QUEUE_DIR / ws
+    meta_path = package_dir / "meta.json"
+
+    # Idempotency: skip if already prepared (or already sent) this week
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        status = meta.get("status", "")
+        logger.info("Week %s already has status=%s — skipping prepare.", ws, status)
+        return
+
+    issue_number = database.get_or_create_issue(ws)
+
+    _selected_unused, all_papers, source_counts = fetch_top_papers(config)
+    if not all_papers:
+        logger.error("No papers fetched — aborting.")
+        sys.exit(1)
+
+    database.upsert_papers(all_papers, set())
+
+    summaries = build_summaries(all_papers, config)
+    if not summaries:
+        logger.error("No papers survived scoring — aborting.")
+        sys.exit(1)
+
+    run_stats = {
+        "total": source_counts["total"],
+        "selected": len(summaries),
+        "by_source": [
+            {"source": src, "count": cnt}
+            for src, cnt in source_counts.items()
+            if src not in ("total", "selected") and cnt > 0
+        ],
+    }
+
+    selected_urls = {s.paper.url for s in summaries}
+    database.upsert_papers([s.paper for s in summaries], selected_urls)
+    for s in summaries:
+        database.update_paper_scores(s.paper.url, s.keywords, {
+            "relevance": round(s.relevance),
+            "source_quality": round(s.source_quality),
+            "final_score": s.final_score,
+        })
+
+    db_stats = database.cumulative_stats()
+    html_body = render_email(summaries, issue_number, run_stats, db_stats)
+
+    monday = week_start_date()
+    subject = f"Weekly QIS Papers | {monday.strftime('%b %d, %Y')}  Issue #{issue_number}"
+
+    if dry_run:
+        preview_path = LOG_DIR / f"preview_{datetime.now().strftime('%Y%m%d')}.html"
+        preview_path.write_text(html_body, encoding="utf-8")
+        logger.info("[DRY RUN] Package not saved. HTML preview: %s", preview_path)
+        return
+
+    # Save package
+    package_dir.mkdir(parents=True, exist_ok=True)
+    (package_dir / "email_body.html").write_text(html_body, encoding="utf-8")
+
+    attach_dir = package_dir / "attachments"
+    attach_dir.mkdir(exist_ok=True)
+    for filename, data in _collect_pdfs(summaries):
+        (attach_dir / filename).write_bytes(data)
+
+    meta = {
+        "status": "ready",
+        "week_start": ws,
+        "subject": subject,
+        "issue_number": issue_number,
+        "prepared_at": datetime.now().isoformat(),
+        "sent_at": None,
+    }
+    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    # Also save HTML preview to logs/
+    preview_path = LOG_DIR / f"preview_{datetime.now().strftime('%Y%m%d')}.html"
+    preview_path.write_text(html_body, encoding="utf-8")
+
+    logger.info("Package saved to: %s", package_dir)
+    logger.info("=== PREPARE finished successfully ===")
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: send — load from queue and email
+# ---------------------------------------------------------------------------
+
+def send_prepared(dry_run: bool = False) -> None:
+    logger.info("=== Finance Paper Agent — SEND starting ===")
+
+    if not QUEUE_DIR.exists():
+        logger.error("Queue directory not found (%s). Run --prepare first.", QUEUE_DIR)
+        sys.exit(1)
+
+    # Find most recent "ready" package
+    candidates: list[tuple[Path, dict]] = []
+    for folder in QUEUE_DIR.iterdir():
+        if not folder.is_dir():
+            continue
+        meta_path = folder / "meta.json"
+        if not meta_path.exists():
+            continue
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if meta.get("status") == "ready":
+            candidates.append((folder, meta))
+
+    if not candidates:
+        logger.error("No prepared (unsent) packages found in queue. Run --prepare first.")
+        sys.exit(1)
+
+    candidates.sort(key=lambda x: x[1]["week_start"], reverse=True)
+    package_dir, meta = candidates[0]
+    logger.info("Sending package: %s (prepared %s)", meta["week_start"], meta.get("prepared_at", "?"))
+
+    html_body = (package_dir / "email_body.html").read_text(encoding="utf-8")
+
+    attachments: list[tuple[str, bytes]] = []
+    attach_dir = package_dir / "attachments"
+    if attach_dir.exists():
+        for pdf_path in sorted(attach_dir.glob("*.pdf")):
+            attachments.append((pdf_path.name, pdf_path.read_bytes()))
+            logger.info("Loaded PDF: %s (%.1f MB)", pdf_path.name, pdf_path.stat().st_size / 1e6)
+
+    subject = meta["subject"]
+    config = load_config()
+
+    if dry_run:
+        logger.info("[DRY RUN] Would send: '%s' with %d PDF(s) — skipped.", subject, len(attachments))
+        return
+
+    send_email(subject, html_body, config, attachments)
+
+    meta["status"] = "sent"
+    meta["sent_at"] = datetime.now().isoformat()
+    (package_dir / "meta.json").write_text(
+        json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    logger.info("Email sent. Package marked as sent.")
+    logger.info("=== SEND finished successfully ===")
+
+
+# ---------------------------------------------------------------------------
+# Legacy: prepare + send in one shot
 # ---------------------------------------------------------------------------
 
 def run(dry_run: bool = False) -> None:
@@ -160,22 +343,8 @@ def run(dry_run: bool = False) -> None:
     preview_path.write_text(html_body, encoding="utf-8")
     logger.info("HTML preview saved: %s", preview_path)
 
-    # 4. Download PDFs (respect Gmail 25 MB wire limit)
-    attachments: list[tuple[str, bytes]] = []
-    total_attach = 0
-    for s in summaries:
-        if total_attach >= MAX_TOTAL_ATTACH_BYTES:
-            logger.info("Attachment budget reached — skipping remaining PDFs.")
-            break
-        result = download_pdf(s.paper.pdf_url, s.paper.title)
-        if result:
-            filename, data = result
-            if total_attach + len(data) > MAX_TOTAL_ATTACH_BYTES:
-                logger.warning("Skipping PDF (would exceed budget): %s", filename)
-                continue
-            attachments.append(result)
-            total_attach += len(data)
-            logger.info("PDF ready: %s (%.1f MB)", filename, len(data) / 1e6)
+    # 4. Download PDFs
+    attachments = _collect_pdfs(summaries)
 
     # 5. Send email (or skip in dry-run mode)
     monday = week_start_date()
@@ -249,20 +418,7 @@ def run_special_issue(dry_run: bool = False) -> None:
     preview_path.write_text(html_body, encoding="utf-8")
     logger.info("HTML preview saved: %s", preview_path)
 
-    attachments: list[tuple[str, bytes]] = []
-    total_attach = 0
-    for s in summaries:
-        if total_attach >= MAX_TOTAL_ATTACH_BYTES:
-            break
-        result = download_pdf(s.paper.pdf_url, s.paper.title)
-        if result:
-            filename, data = result
-            if total_attach + len(data) > MAX_TOTAL_ATTACH_BYTES:
-                logger.warning("Skipping PDF (would exceed budget): %s", filename)
-                continue
-            attachments.append(result)
-            total_attach += len(data)
-            logger.info("PDF ready: %s (%.1f MB)", filename, len(data) / 1e6)
+    attachments = _collect_pdfs(summaries)
 
     subject = f"Special Issue: QIS Classics | {len(summaries)} Must-Read Papers"
     if dry_run:
@@ -275,8 +431,11 @@ def run_special_issue(dry_run: bool = False) -> None:
 
 if __name__ == "__main__":
     dry_run = "--dry-run" in sys.argv
-    special_issue = "--special-issue" in sys.argv
-    if special_issue:
+    if "--special-issue" in sys.argv:
         run_special_issue(dry_run=dry_run)
+    elif "--prepare" in sys.argv:
+        prepare(dry_run=dry_run)
+    elif "--send" in sys.argv:
+        send_prepared(dry_run=dry_run)
     else:
         run(dry_run=dry_run)
